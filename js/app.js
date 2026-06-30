@@ -47,6 +47,7 @@
     document.querySelectorAll('.nav-item').forEach((b) => b.classList.toggle('active', b.dataset.modulo === modulo));
     elTitulo.textContent = MODULOS[modulo].label;
     elBtnNuevo.hidden = modulo === 'inicio';
+    elContenido.classList.toggle('iconos-mode', modulo === 'iconos');
 
     if (modulo === 'inicio') {
       elContenido.classList.add('inicio-mode');
