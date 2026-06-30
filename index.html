@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ayudas Banco · Iniciar sesión</title>
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="login-body">
+  <button id="btnTema" class="theme-toggle" title="Cambiar tema">🌙</button>
+
+  <div class="login-card">
+    <div class="login-brand">
+      <span class="brand-icon">🗂️</span>
+      <h1>Ayudas Banco</h1>
+      <p>Inicia sesión para continuar</p>
+    </div>
+
+    <form id="formLogin" class="login-form">
+      <label>
+        Correo
+        <input type="email" id="email" required placeholder="tucorreo@bancolombia.com.co" autocomplete="username" />
+      </label>
+      <label>
+        Contraseña
+        <input type="password" id="password" required placeholder="••••••••" autocomplete="current-password" />
+      </label>
+      <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+      <p id="errorLogin" class="form-error" hidden></p>
+    </form>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/auth.js"></script>
+</body>
+</html>
