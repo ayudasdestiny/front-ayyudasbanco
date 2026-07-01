@@ -23,15 +23,32 @@
   };
 
   // ---------- Elementos ----------
-  const elContenido = document.getElementById('contenido');
-  const elTitulo = document.getElementById('tituloModulo');
+  const elContenido     = document.getElementById('contenido');
+  const elTitulo        = document.getElementById('tituloModulo');
   const elCategoriasBar = document.getElementById('categoriasBar');
-  const elBuscador = document.getElementById('buscador');
-  const elBtnNuevo = document.getElementById('btnNuevo');
+  const elBuscador      = document.getElementById('buscador');
+  const elBtnNuevo      = document.getElementById('btnNuevo');
   const elUsuarioNombre = document.getElementById('usuarioNombre');
 
   const usuario = Sesion.usuario();
   if (usuario) elUsuarioNombre.textContent = usuario.nombre || usuario.email;
+
+  // ---------- Helpers de permisos ----------
+  // Diario siempre permite editar (es contenido propio del usuario)
+  // Admin siempre puede todo
+  function puedeEditar(modulo) {
+    if (!usuario) return false;
+    if (usuario.rol === 'admin') return true;
+    if (modulo === 'diario') return true;
+    return usuario.permisos?.[modulo]?.editar === true;
+  }
+
+  function puedeVer(modulo) {
+    if (!usuario) return false;
+    if (usuario.rol === 'admin') return true;
+    if (modulo === 'diario') return true;
+    return usuario.permisos?.[modulo]?.ver !== false; // true por defecto
+  }
 
   // ---------- Navegación lateral ----------
   document.querySelectorAll('.nav-item').forEach((btn) => {
@@ -46,13 +63,17 @@
 
     document.querySelectorAll('.nav-item').forEach((b) => b.classList.toggle('active', b.dataset.modulo === modulo));
     elTitulo.textContent = MODULOS[modulo].label;
-    elBtnNuevo.hidden = modulo === 'inicio';
+
+    // Botón "+ Nuevo": oculto en inicio; en otros módulos depende de permisos
+    elBtnNuevo.hidden = modulo === 'inicio' || !puedeEditar(modulo);
+
     elContenido.classList.toggle('iconos-mode', modulo === 'iconos');
 
     if (modulo === 'inicio') {
       elContenido.classList.add('inicio-mode');
       renderInicio();
-      elCategoriasBar.innerHTML = '';    } else if (modulo === 'usuarios') {
+      elCategoriasBar.innerHTML = '';
+    } else if (modulo === 'usuarios') {
       elContenido.classList.remove('inicio-mode');
       elCategoriasBar.innerHTML = '';
       if (typeof window.renderSeccionUsuarios === 'function') window.renderSeccionUsuarios();
@@ -81,6 +102,8 @@
       const items = await apiFetch('/items/inicio');
       const recordatorios = items.filter((i) => i.categoria === 'recordatorio');
       const noticias      = items.filter((i) => i.categoria === 'noticia');
+      const esAdmin = usuario?.rol === 'admin';
+
       elContenido.innerHTML = `
         <div class="inicio-wrap">
           <div class="inicio-saludo">
@@ -92,54 +115,53 @@
           </div>
 
           <div class="inicio-grid">
-            <!-- Recordatorios -->
             <section class="inicio-seccion">
               <div class="inicio-seccion-header">
                 <span class="inicio-seccion-icon recordatorio-color">📌</span>
                 <h3>Recordatorios</h3>
-                <button class="btn btn-sm btn-outline" data-nuevo="recordatorio">+ Nuevo</button>
+                ${esAdmin ? `<button class="btn btn-sm btn-outline" data-nuevo="recordatorio">+ Nuevo</button>` : ''}
               </div>
               <div class="inicio-lista" id="listaRecordatorios">
                 ${recordatorios.length
-                  ? recordatorios.map((r) => tarjetaInicioHTML(r)).join('')
-                  : '<p class="inicio-vacio">Sin recordatorios. Agrega el primero.</p>'}
+                  ? recordatorios.map((r) => tarjetaInicioHTML(r, esAdmin)).join('')
+                  : '<p class="inicio-vacio">Sin recordatorios.</p>'}
               </div>
             </section>
 
-            <!-- Noticias -->
             <section class="inicio-seccion">
               <div class="inicio-seccion-header">
                 <span class="inicio-seccion-icon noticia-color">📢</span>
                 <h3>Noticias importantes</h3>
-                <button class="btn btn-sm btn-outline" data-nuevo="noticia">+ Nueva</button>
+                ${esAdmin ? `<button class="btn btn-sm btn-outline" data-nuevo="noticia">+ Nueva</button>` : ''}
               </div>
               <div class="inicio-lista" id="listaNoticias">
                 ${noticias.length
-                  ? noticias.map((n) => tarjetaInicioHTML(n)).join('')
-                  : '<p class="inicio-vacio">Sin noticias. Agrega la primera.</p>'}
+                  ? noticias.map((n) => tarjetaInicioHTML(n, esAdmin)).join('')
+                  : '<p class="inicio-vacio">Sin noticias.</p>'}
               </div>
             </section>
           </div>
         </div>`;
 
-      // bind eventos
-      elContenido.querySelectorAll('[data-nuevo]').forEach((btn) => {
-        btn.addEventListener('click', () => abrirModalInicio(null, btn.dataset.nuevo));
-      });
-      elContenido.querySelectorAll('[data-editar-inicio]').forEach((btn) => {
-        const item = items.find((i) => i._id === btn.dataset.editarInicio);
-        if (item) btn.addEventListener('click', () => abrirModalInicio(item, item.categoria));
-      });
-      elContenido.querySelectorAll('[data-borrar-inicio]').forEach((btn) => {
-        btn.addEventListener('click', () => borrarItemInicio(btn.dataset.borrarInicio));
-      });
+      if (esAdmin) {
+        elContenido.querySelectorAll('[data-nuevo]').forEach((btn) => {
+          btn.addEventListener('click', () => abrirModalInicio(null, btn.dataset.nuevo));
+        });
+        elContenido.querySelectorAll('[data-editar-inicio]').forEach((btn) => {
+          const item = items.find((i) => i._id === btn.dataset.editarInicio);
+          if (item) btn.addEventListener('click', () => abrirModalInicio(item, item.categoria));
+        });
+        elContenido.querySelectorAll('[data-borrar-inicio]').forEach((btn) => {
+          btn.addEventListener('click', () => borrarItemInicio(btn.dataset.borrarInicio));
+        });
+      }
     } catch (err) {
       elContenido.innerHTML = `<div class="empty-state">Error: ${err.message}</div>`;
     }
   }
 
-  function tarjetaInicioHTML(item) {
-    const tipo = item.categoria;
+  function tarjetaInicioHTML(item, mostrarAcciones) {
+    const tipo  = item.categoria;
     const fecha = new Date(item.updatedAt || item.createdAt).toLocaleDateString('es-CO', { day:'2-digit', month:'short', year:'numeric' });
     return `
       <div class="inicio-card ${tipo}-card">
@@ -148,10 +170,11 @@
           ${item.contenido ? `<p class="inicio-card-texto">${escapeHtml(item.contenido)}</p>` : ''}
           <span class="inicio-card-fecha">${fecha}</span>
         </div>
+        ${mostrarAcciones ? `
         <div class="inicio-card-acciones">
           <button class="icon-action" data-editar-inicio="${item._id}" title="Editar">✏️</button>
           <button class="icon-action danger" data-borrar-inicio="${item._id}" title="Eliminar">🗑️</button>
-        </div>
+        </div>` : ''}
       </div>`;
   }
 
@@ -163,21 +186,18 @@
     } catch (err) { alert('Error: ' + err.message); }
   }
 
-  // Modal reutilizado para inicio (recordatorio / noticia)
   function abrirModalInicio(item, tipo) {
     document.getElementById('modalTitulo').textContent = item
       ? `Editar ${tipo === 'noticia' ? 'noticia' : 'recordatorio'}`
       : `Nuevo ${tipo === 'noticia' ? 'noticia' : 'recordatorio'}`;
-    document.getElementById('itemId').value          = item ? item._id : '';
-    document.getElementById('campoTitulo').value     = item ? item.titulo : '';
-    document.getElementById('campoCategoria').value  = tipo;
-    document.getElementById('campoDescripcion').value= '';
-    document.getElementById('campoContenido').value  = item ? item.contenido || '' : '';
-    document.getElementById('campoUrl').value        = '';
-    document.getElementById('campoImagen').value     = '';
-    document.getElementById('campoDestacado').checked= false;
-
-    // Guardamos el tipo para que formItem sepa que es de inicio
+    document.getElementById('itemId').value           = item ? item._id : '';
+    document.getElementById('campoTitulo').value      = item ? item.titulo : '';
+    document.getElementById('campoCategoria').value   = tipo;
+    document.getElementById('campoDescripcion').value = '';
+    document.getElementById('campoContenido').value   = item ? item.contenido || '' : '';
+    document.getElementById('campoUrl').value         = '';
+    document.getElementById('campoImagen').value      = '';
+    document.getElementById('campoDestacado').checked = false;
     document.getElementById('formItem').dataset.moduloOverride = 'inicio';
     document.getElementById('modalOverlay').hidden = false;
   }
@@ -232,7 +252,7 @@
 
   function renderItems() {
     if (!estado.items.length) {
-      elContenido.innerHTML = `<div class="empty-state">No hay registros aún. Crea el primero con "+ Nuevo".</div>`;
+      elContenido.innerHTML = `<div class="empty-state">No hay registros aún${puedeEditar(estado.moduloActual) ? '. Crea el primero con "+ Nuevo"' : ''}.</div>`;
       return;
     }
     elContenido.innerHTML = estado.items.map(tarjetaHTML).join('');
@@ -252,12 +272,15 @@
   }
 
   function tarjetaHTML(item) {
-    const esIcono = estado.moduloActual === 'iconos';
+    const esIcono  = estado.moduloActual === 'iconos';
+    const editable = puedeEditar(estado.moduloActual);
+
     const img = item.imagenUrl
       ? esIcono
         ? `<div class="icono-wrap"><img src="${escapeAttr(item.imagenUrl)}" alt="" style="width:50px;height:50px;object-fit:contain;" /></div>`
         : `<img class="card-img" src="${escapeAttr(item.imagenUrl)}" alt="" />`
       : '';
+
     return `
       <article class="card">
         <div class="card-top">
@@ -270,8 +293,8 @@
           ${item.contenido ? `<button data-accion="ver" data-id="${item._id}">👁️ Ver</button>` : ''}
           ${item.contenido ? `<button data-accion="copiar" data-id="${item._id}">📋 Copiar</button>` : ''}
           ${item.url ? `<button onclick="window.open('${escapeAttr(item.url)}','_blank')">🔗 Abrir</button>` : ''}
-          <button data-accion="editar" data-id="${item._id}">✏️ Editar</button>
-          <button class="danger" data-accion="eliminar" data-id="${item._id}">🗑️ Eliminar</button>
+          ${editable ? `<button data-accion="editar" data-id="${item._id}">✏️ Editar</button>` : ''}
+          ${editable ? `<button class="danger" data-accion="eliminar" data-id="${item._id}">🗑️ Eliminar</button>` : ''}
         </div>
       </article>`;
   }
@@ -298,22 +321,22 @@
 
   // ---------- Modal crear/editar ----------
   const modalOverlay = document.getElementById('modalOverlay');
-  const formItem = document.getElementById('formItem');
+  const formItem     = document.getElementById('formItem');
 
   elBtnNuevo.addEventListener('click', () => abrirModal(null));
   document.getElementById('btnCerrarModal').addEventListener('click', cerrarModal);
   document.getElementById('btnCancelarModal').addEventListener('click', cerrarModal);
 
   function abrirModal(item) {
-    document.getElementById('modalTitulo').textContent = item ? 'Editar registro' : 'Nuevo registro';
-    document.getElementById('itemId').value = item ? item._id : '';
-    document.getElementById('campoTitulo').value = item ? item.titulo : '';
-    document.getElementById('campoCategoria').value = item ? item.categoria || '' : '';
-    document.getElementById('campoDescripcion').value = item ? item.descripcion || '' : '';
-    document.getElementById('campoContenido').value = item ? item.contenido || '' : '';
-    document.getElementById('campoUrl').value = item ? item.url || '' : '';
-    document.getElementById('campoImagen').value = item ? item.imagenUrl || '' : '';
-    document.getElementById('campoDestacado').checked = item ? !!item.destacado : false;
+    document.getElementById('modalTitulo').textContent     = item ? 'Editar registro' : 'Nuevo registro';
+    document.getElementById('itemId').value                = item ? item._id : '';
+    document.getElementById('campoTitulo').value           = item ? item.titulo : '';
+    document.getElementById('campoCategoria').value        = item ? item.categoria || '' : '';
+    document.getElementById('campoDescripcion').value      = item ? item.descripcion || '' : '';
+    document.getElementById('campoContenido').value        = item ? item.contenido || '' : '';
+    document.getElementById('campoUrl').value              = item ? item.url || '' : '';
+    document.getElementById('campoImagen').value           = item ? item.imagenUrl || '' : '';
+    document.getElementById('campoDestacado').checked      = item ? !!item.destacado : false;
     modalOverlay.hidden = false;
   }
 
@@ -324,16 +347,16 @@
 
   formItem.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const id = document.getElementById('itemId').value;
+    const id            = document.getElementById('itemId').value;
     const moduloDestino = formItem.dataset.moduloOverride || estado.moduloActual;
     const payload = {
-      titulo:    document.getElementById('campoTitulo').value.trim(),
-      categoria: document.getElementById('campoCategoria').value.trim() || 'General',
+      titulo:      document.getElementById('campoTitulo').value.trim(),
+      categoria:   document.getElementById('campoCategoria').value.trim() || 'General',
       descripcion: document.getElementById('campoDescripcion').value.trim(),
-      contenido: document.getElementById('campoContenido').value,
-      url:       document.getElementById('campoUrl').value.trim(),
-      imagenUrl: document.getElementById('campoImagen').value.trim(),
-      destacado: document.getElementById('campoDestacado').checked,
+      contenido:   document.getElementById('campoContenido').value,
+      url:         document.getElementById('campoUrl').value.trim(),
+      imagenUrl:   document.getElementById('campoImagen').value.trim(),
+      destacado:   document.getElementById('campoDestacado').checked,
     };
     try {
       if (id) {
