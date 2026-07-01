@@ -39,7 +39,7 @@
     const filas = usuarios.map((u) => {
       const rolBadge = u.rol === 'admin'
         ? `<span class="badge badge-rol-admin">Admin</span>`
-        : `<span class="badge badge-rol-editor">Editor</span>`;
+        : u.rol === 'editor' ? `<span class="badge badge-rol-editor">Editor</span>` : `<span class="badge badge-rol-vis">Visualizador</span>`;
       const estadoBadge = u.activo
         ? '<span class="badge" style="color:var(--success);border-color:var(--success)">Activo</span>'
         : '<span class="badge badge-inactivo">Inactivo</span>';
