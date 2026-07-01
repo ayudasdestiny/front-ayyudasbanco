@@ -547,3 +547,28 @@ select:focus { border-color: var(--primary); }
 .content.iconos-mode .card-desc {
   font-size: 12px;
 }
+
+/* ===== Grid de iconos ===== */
+.content.iconos-mode {
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 12px;
+}
+
+.content.iconos-mode .card {
+  align-items: center;
+  text-align: center;
+  padding: 14px 10px;
+}
+
+.content.iconos-mode .icono-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+.content.iconos-mode .card-actions {
+  justify-content: center;
+}
+
+.content.iconos-mode .card-desc {
+  font-size: 12px;
+}
