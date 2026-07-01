@@ -550,7 +550,8 @@ select:focus { border-color: var(--primary); }
 
 /* ===== Grid de iconos ===== */
 .content.iconos-mode {
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important;
   gap: 12px;
 }
 
@@ -558,6 +559,7 @@ select:focus { border-color: var(--primary); }
   align-items: center;
   text-align: center;
   padding: 14px 10px;
+  min-width: 0;
 }
 
 .content.iconos-mode .icono-wrap {
