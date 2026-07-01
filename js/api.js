@@ -1,8 +1,5 @@
 // Cambia esta URL por la de tu backend desplegado en Render, por ejemplo:
-// const API_URL = 'https://ayudasbanco-backend.onrender.com/api';
-const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-  ? 'http://localhost:4000/api'
-  : 'https://TU-BACKEND-EN-RENDER.onrender.com/api';
+const API_URL = 'https://backend-ayudasbanco.onrender.com/api';
 
 const Sesion = {
   guardar(token, usuario) {
