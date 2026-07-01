@@ -121,6 +121,7 @@
           <label>
             Rol
             <select id="uRol">
+              <option value="visualizador">Visualizador (solo lectura)</option>
               <option value="editor">Editor</option>
               <option value="admin">Administrador</option>
             </select>
@@ -133,7 +134,7 @@
 
         <!-- Tabla de permisos -->
         <div class="permisos-section" id="permisosSection">
-          <p class="permisos-nota">Los administradores tienen acceso total. Los permisos aplican solo a editores.</p>
+          <p class="permisos-nota">Los administradores tienen acceso total. Editores y visualizadores solo acceden según los permisos marcados abajo.</p>
           <div class="permisos-tabla">
             <div class="permisos-header">
               <span>Módulo</span>
